@@ -18,7 +18,7 @@ forecast = (
 )
 obs = ds["obs"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["obs"]
 baseline = (
-    ds["baseline"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["basline"]
+    ds["baseline"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["baseline"]
 )
 
 N = 3
