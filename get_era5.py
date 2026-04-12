@@ -1,3 +1,7 @@
+"""
+Download era5 precipitation data and save necessary parts to file
+"""
+
 import xarray as xr
 import numpy as np
 import os

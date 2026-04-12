@@ -1,3 +1,7 @@
+"""
+master.nc + era5_ppt.nc -> .npz file for ML
+"""
+
 import xarray as xr
 import numpy as np
 
@@ -50,4 +54,3 @@ preds = pred_np.reshape(-1, 7).astype(np.float32)
 
 np.savez("data/ml_data.npz", X_input=X_input, y_obs=y_obs, preds=preds)
 print(f"saved {len(y_obs)} samples")
-

@@ -1,3 +1,7 @@
+"""
+Separate NetCDF files -> master.nc
+"""
+
 import xarray as xr
 
 models = [

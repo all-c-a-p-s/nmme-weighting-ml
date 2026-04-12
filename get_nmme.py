@@ -43,7 +43,6 @@ def once(mdl):
             u.append(v)
 
     da = xr.concat(u, dim="time")
-    # print(da)
 
     path = "data/" + mdl + ".nc"
 

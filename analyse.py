@@ -1,3 +1,11 @@
+"""
+Calculate:
+- MAE
+- RMSE
+- N-ile accuracy (accuracy for N %ile groups) per grid cell
+- ACC per grid cell
+"""
+
 import xarray as xr
 import numpy as np
 
@@ -38,5 +46,4 @@ def evaluate(pred, obs, label):
 
 
 evaluate(forecast, obs, "Senate")
-evaluate(baseline, obs, "Baseline (equal weights)")
-
+evaluate(baseline, obs, "Baseline (ensemble)")

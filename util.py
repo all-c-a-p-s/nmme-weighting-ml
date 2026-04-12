@@ -1,3 +1,7 @@
+"""
+Just a script I'm rewriting to look into the data as needed
+"""
+
 import numpy as np
 
 data = np.load("data/ml_data.npz")

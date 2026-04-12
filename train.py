@@ -1,3 +1,7 @@
+"""
+Train a model from prepared ML data
+"""
+
 from tqdm import tqdm
 import numpy as np
 import torch

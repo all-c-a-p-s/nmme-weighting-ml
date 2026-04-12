@@ -1,3 +1,7 @@
+"""
+Load model and save predictions to a file + functions to run model on new data
+"""
+
 import torch
 import numpy as np
 from torch.utils.data import DataLoader, Subset
