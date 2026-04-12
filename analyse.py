@@ -10,9 +10,16 @@ import xarray as xr
 import numpy as np
 
 ds = xr.open_dataset("data/test_predictions.nc")
-forecast = ds["forecast"]
-obs = ds["obs"]
-baseline = ds["baseline"]
+
+AOI_ONLY = True
+
+forecast = (
+    ds["forecast"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["forecast"]
+)
+obs = ds["obs"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["obs"]
+baseline = (
+    ds["baseline"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["basline"]
+)
 
 N = 3
 
