@@ -8,18 +8,19 @@ Calculate:
 
 import xarray as xr
 import numpy as np
+import matplotlib.pyplot as plt
 
-ds = xr.open_dataset("data/test_predictions.nc")
+Y_MIN, Y_MAX, X_MIN, X_MAX = -18, 16, 7, 50
+PRED_PATH = "data/test_predictions.nc"
+ds = xr.open_dataset(PRED_PATH)
 
-AOI_ONLY = True
+forecast_global = ds["forecast"]
+obs_global = ds["obs"]
+baseline_global = ds["baseline"]
 
-forecast = (
-    ds["forecast"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["forecast"]
-)
-obs = ds["obs"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["obs"]
-baseline = (
-    ds["baseline"].sel(X=slice(7, 50), Y=slice(-18, 16)) if AOI_ONLY else ds["baseline"]
-)
+forecast_aoi = ds["forecast"].sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
+obs_aoi = ds["obs"].sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
+baseline_aoi = ds["baseline"].sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
 
 N = 3
 
@@ -50,7 +51,45 @@ def evaluate(pred, obs, label):
     print(f"RMSE:       {rmse.mean().values:.4f}")
     print(f"{N}-ile acc: {nile_acc.mean().values:.4f}")
     print(f"ACC:        {acc.mean().values:.4f}")
+    return {"MAE": mae, "RMSE": rmse, f"{N}-ile Acc": nile_acc, "ACC": acc}
 
 
-evaluate(forecast, obs, "Senate")
-evaluate(baseline, obs, "Baseline (ensemble)")
+def plot_metrics(metrics, label, filename):
+    cmaps = {
+        "MAE": ("YlOrRd", None, None),
+        "RMSE": ("YlOrRd", None, None),
+        f"{N}-ile Acc": ("RdYlGn", 0, 1),
+        "ACC": ("RdYlGn", -1, 1),
+    }
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+    fig.suptitle(label, fontsize=13)
+    for ax, (name, da) in zip(axes.flat, metrics.items()):
+        cmap, vmin, vmax = cmaps[name]
+        vals = da.values
+        im = ax.pcolormesh(
+            da.X,
+            da.Y,
+            vals,
+            cmap=cmap,
+            vmin=vmin if vmin is not None else np.nanpercentile(vals, 2),
+            vmax=vmax if vmax is not None else np.nanpercentile(vals, 98),
+        )
+        ax.set_title(name)
+        ax.set_xlabel("Lon")
+        ax.set_ylabel("Lat")
+        plt.colorbar(im, ax=ax, shrink=0.8)
+    plt.tight_layout()
+    plt.savefig(filename, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved {filename}")
+
+
+fc_metrics_global = evaluate(forecast_global, obs_global, "Forecast (global)")
+bl_metrics_global = evaluate(baseline_global, obs_global, "Baseline (global)")
+plot_metrics(fc_metrics_global, "Forecast (global)", "forecast_global.png")
+plot_metrics(bl_metrics_global, "Baseline (global)", "baseline_global.png")
+
+fc_metrics_aoi = evaluate(forecast_aoi, obs_aoi, "Forecast (AOI)")
+bl_metrics_aoi = evaluate(baseline_aoi, obs_aoi, "Baseline (AOI)")
+plot_metrics(fc_metrics_aoi, "Forecast (AOI)", "forecast_aoi.png")
+plot_metrics(bl_metrics_aoi, "Baseline (AOI)", "baseline_aoi.png")

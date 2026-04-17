@@ -39,7 +39,9 @@ def once(mdl):
                 file = pref + str(yr) + "-" + str(mnth).zfill(2) + suf2
                 data = xr.open_dataset(file)
 
-            v = data["prec"].sel(M=1.0, L=3.0)
+            v = data["prec"].sel(L=3.0).mean(dim="M")
+            # v_std = data["prec"].sel(L=3.0).std(dim="M")
+
             u.append(v)
 
     da = xr.concat(u, dim="time")
