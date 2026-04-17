@@ -84,12 +84,47 @@ def plot_metrics(metrics, label, filename):
     print(f"Saved {filename}")
 
 
+def plot_diff_metrics(fc_metrics, bl_metrics, label, filename):
+    # flip signs so that its consistent that smaller value = win for us
+    diffs = {
+        "MAE (neg=forecast better)": bl_metrics["MAE"] - fc_metrics["MAE"],
+        "RMSE (neg=forecast better)": bl_metrics["RMSE"] - fc_metrics["RMSE"],
+        f"{N}-ile Acc (pos=forecast better)": fc_metrics[f"{N}-ile Acc"]
+        - bl_metrics[f"{N}-ile Acc"],
+        "ACC (pos=forecast better)": fc_metrics["ACC"] - bl_metrics["ACC"],
+    }
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+    fig.suptitle(label, fontsize=13)
+    for ax, (name, da) in zip(axes.flat, diffs.items()):
+        vals = da.values
+        lim = np.nanpercentile(np.abs(vals), 98)
+        im = ax.pcolormesh(da.X, da.Y, vals, cmap="RdBu", vmin=-lim, vmax=lim)
+        ax.set_title(name)
+        ax.set_xlabel("Lon")
+        ax.set_ylabel("Lat")
+        plt.colorbar(im, ax=ax, shrink=0.8)
+    plt.tight_layout()
+    plt.savefig(filename, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved {filename}")
+
+
 fc_metrics_global = evaluate(forecast_global, obs_global, "Forecast (global)")
 bl_metrics_global = evaluate(baseline_global, obs_global, "Baseline (global)")
-plot_metrics(fc_metrics_global, "Forecast (global)", "forecast_global.png")
-plot_metrics(bl_metrics_global, "Baseline (global)", "baseline_global.png")
+plot_metrics(fc_metrics_global, "Forecast (global)", "plots/forecast_global.png")
+plot_metrics(bl_metrics_global, "Baseline (global)", "plots/baseline_global.png")
 
 fc_metrics_aoi = evaluate(forecast_aoi, obs_aoi, "Forecast (AOI)")
 bl_metrics_aoi = evaluate(baseline_aoi, obs_aoi, "Baseline (AOI)")
-plot_metrics(fc_metrics_aoi, "Forecast (AOI)", "forecast_aoi.png")
-plot_metrics(bl_metrics_aoi, "Baseline (AOI)", "baseline_aoi.png")
+plot_metrics(fc_metrics_aoi, "Forecast (AOI)", "plots/forecast_aoi.png")
+plot_metrics(bl_metrics_aoi, "Baseline (AOI)", "plots/baseline_aoi.png")
+
+plot_diff_metrics(
+    fc_metrics_global,
+    bl_metrics_global,
+    "Forecast vs Baseline (global)",
+    "plots/diff_global.png",
+)
+plot_diff_metrics(
+    fc_metrics_aoi, bl_metrics_aoi, "Forecast vs Baseline (AOI)", "plots/diff_aoi.png"
+)
