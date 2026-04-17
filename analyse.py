@@ -87,11 +87,10 @@ def plot_metrics(metrics, label, filename):
 def plot_diff_metrics(fc_metrics, bl_metrics, label, filename):
     # flip signs so that its consistent that smaller value = win for us
     diffs = {
-        "MAE (neg=forecast better)": bl_metrics["MAE"] - fc_metrics["MAE"],
-        "RMSE (neg=forecast better)": bl_metrics["RMSE"] - fc_metrics["RMSE"],
-        f"{N}-ile Acc (pos=forecast better)": fc_metrics[f"{N}-ile Acc"]
-        - bl_metrics[f"{N}-ile Acc"],
-        "ACC (pos=forecast better)": fc_metrics["ACC"] - bl_metrics["ACC"],
+        "MAE": bl_metrics["MAE"] - fc_metrics["MAE"],
+        "RMS": bl_metrics["RMSE"] - fc_metrics["RMSE"],
+        f"{N}-ile Acc": fc_metrics[f"{N}-ile Acc"] - bl_metrics[f"{N}-ile Acc"],
+        "ACC": fc_metrics["ACC"] - bl_metrics["ACC"],
     }
     fig, axes = plt.subplots(2, 2, figsize=(14, 8))
     fig.suptitle(label, fontsize=13)
