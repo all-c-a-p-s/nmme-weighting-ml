@@ -5,10 +5,10 @@ Still a lot of improvement to be found + more ideas to test.
 ## Global Results
 ```
 --- Forecast (global) ---
-MAE:        1.2573
-RMSE:       1.6629
-3-ile acc: 0.3674
-ACC:        0.1459
+MAE:        1.0490
+RMSE:       1.4250
+3-ile acc: 0.4246
+ACC:        0.3130
 
 --- Baseline (global) ---
 MAE:        1.4727
@@ -20,10 +20,10 @@ ACC:        -0.0296
 ## Results in Central Africa AOI
 ```
 --- Forecast (AOI) ---
-MAE:        2.3734
-RMSE:       3.1529
-3-ile acc: 0.3126
-ACC:        0.0105
+MAE:        1.6709
+RMSE:       2.4468
+3-ile acc: 0.4203
+ACC:        0.3619
 
 --- Baseline (AOI) ---
 MAE:        2.9704

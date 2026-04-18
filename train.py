@@ -34,7 +34,7 @@ class Senate(nn.Module):
             nn.Linear(32, 16),
             nn.ReLU(),
             nn.Linear(16, 7),
-            nn.Softmax(dim=-1),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
