@@ -13,30 +13,27 @@ model.load_state_dict(torch.load("models/senate.pt"))
 model.eval()
 
 
-def encode(month, y, x):
-    return torch.tensor(
-        [
-            np.sin(2 * np.pi * month / 12),
-            np.cos(2 * np.pi * month / 12),
-            np.sin(2 * np.pi * x / 360),
-            np.cos(2 * np.pi * x / 360),
-            np.sin(np.pi * (y + 90) / 180),
-            np.cos(np.pi * (y + 90) / 180),
-        ],
-        dtype=torch.float32,
-    )
+def encode(month, y, x, ginis):
+    coords = [
+        np.sin(2 * np.pi * month / 12),
+        np.cos(2 * np.pi * month / 12),
+        np.sin(2 * np.pi * x / 360),
+        np.cos(2 * np.pi * x / 360),
+        np.sin(np.pi * (y + 90) / 180),
+        np.cos(np.pi * (y + 90) / 180),
+    ]
+    return torch.tensor(coords + list(ginis), dtype=torch.float32)
 
 
-# month zero-indexed
-def get_weights(month, y, x):
-    x_input = encode(month, y, x).unsqueeze(0)
+def get_weights(month, y, x, ginis):
+    x_input = encode(month, y, x, ginis).unsqueeze(0)
     with torch.no_grad():
         weights = model(x_input).squeeze(0).numpy()
     return weights
 
 
-def forecast(month, y, x, nmme_preds):
-    weights = get_weights(month, y, x)
+def forecast(month, y, x, nmme_preds, ginis):
+    weights = get_weights(month, y, x, ginis)
     return np.dot(weights, nmme_preds)
 
 

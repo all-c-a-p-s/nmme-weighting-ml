@@ -3,6 +3,7 @@ Get all model data and save just what we need to .nc files
 """
 
 import xarray as xr
+import numpy as np
 import os
 
 models = [
@@ -39,9 +40,23 @@ def once(mdl):
                 file = pref + str(yr) + "-" + str(mnth).zfill(2) + suf2
                 data = xr.open_dataset(file)
 
-            v = data["prec"].sel(L=3.0).mean(dim="M")
-            # v_std = data["prec"].sel(L=3.0).std(dim="M")
+            mean = data["prec"].sel(L=3.0).mean(dim="M")
 
+            # gini coefficient to quantify uncertainty in a normalised way: https://en.wikipedia.org/wiki/Gini_coefficient
+
+            n_members = data.sizes["M"]
+
+            a = np.zeros_like(mean)
+            for i in range(n_members):
+                for j in range(n_members):
+                    a += np.abs(
+                        data["prec"].sel(L=3.0).isel(M=i)
+                        - data["prec"].sel(L=3.0).isel(M=j)
+                    )
+
+            gini = a / (n_members**2 * 2 * mean)
+
+            v = xr.Dataset({"prec_mean": mean, "prec_gini": gini})
             u.append(v)
 
     da = xr.concat(u, dim="time")

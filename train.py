@@ -29,7 +29,7 @@ class Senate(nn.Module):
     def __init__(self):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(6, 32),
+            nn.Linear(13, 32),
             nn.ReLU(),
             nn.Linear(32, 16),
             nn.ReLU(),

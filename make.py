@@ -19,9 +19,9 @@ res = []
 
 
 for m in models:
-    da = xr.open_dataarray("data/" + m + ".nc")
-    da = da.assign_coords(model=m)
-    res.append(da)
+    ds = xr.open_dataset("data/" + m + ".nc")
+    ds = ds.assign_coords(model=m)
+    res.append(ds)
 
 
 combined = xr.concat(res, dim="model").transpose("time", "Y", "X", "model")

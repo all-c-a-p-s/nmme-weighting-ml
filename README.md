@@ -4,30 +4,30 @@ Still a lot of improvement to be found + more ideas to test.
 
 ## Global Results
 ```
---- Senate ---
-MAE:        1.3467
-RMSE:       1.7803
-3-ile acc: 0.3529
-ACC:        0.0898
+--- Forecast (global) ---
+MAE:        1.2573
+RMSE:       1.6629
+3-ile acc: 0.3674
+ACC:        0.1459
 
---- Baseline (ensemble) ---
-MAE:        1.5045
-RMSE:       1.9239
-3-ile acc: 0.3188
-ACC:        -0.0263
+--- Baseline (global) ---
+MAE:        1.4727
+RMSE:       1.8747
+3-ile acc: 0.3185
+ACC:        -0.0296
 ```
 
 ## Results in Central Africa AOI
 ```
---- Senate ---
-MAE:        2.4802
-RMSE:       3.3090
-3-ile acc: 0.2995
-ACC:        -0.0117
+--- Forecast (AOI) ---
+MAE:        2.3734
+RMSE:       3.1529
+3-ile acc: 0.3126
+ACC:        0.0105
 
---- Baseline (ensemble) ---
-MAE:        2.9667
-RMSE:       3.7393
-3-ile acc: 0.2502
-ACC:        -0.1735
+--- Baseline (AOI) ---
+MAE:        2.9704
+RMSE:       3.7322
+3-ile acc: 0.2538
+ACC:        -0.1748
 ```
