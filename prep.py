@@ -20,14 +20,14 @@ models = [
     "ncep-cfsv2",
 ]
 
-T = 360
+T = 357
 Ys = pred.Y.values[1:-1]  # ignore poles bc gfdl-spear has NaNs there
 Xs = pred.X.values
-months = np.arange(T) % 12
+months = (np.arange(T) + 3) % 12
 
-obs_np = obs.values[:, 1:-1, :]
-pred_np = pred.sel(model=models).values[:, 1:-1, :, :]
-gini_np = gini.sel(model=models).values[:, 1:-1, :, :]
+obs_np = obs.values[3:, 1:-1, :]
+pred_np = pred.sel(model=models).values[:-3, 1:-1, :, :]
+gini_np = gini.sel(model=models).values[:-3, 1:-1, :, :]
 gini_np = np.nan_to_num(gini_np)
 
 t_idx, y_idx, x_idx = np.meshgrid(
@@ -61,3 +61,4 @@ X_input = np.hstack([X_input, ginis])
 
 np.savez("data/ml_data.npz", X_input=X_input, y_obs=y_obs, preds=preds)
 print(f"saved {len(y_obs)} samples")
+

@@ -46,7 +46,7 @@ def loaders():
 
     print("splitting dataset...")
     train_timesteps = 300
-    test_timesteps = 60
+    test_timesteps = 57
     train_size = train_timesteps * 179 * 360
     test_size = test_timesteps * 179 * 360
     train_set = Subset(dataset, range(train_size))

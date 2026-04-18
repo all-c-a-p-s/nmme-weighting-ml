@@ -1,60 +1,66 @@
-"""
-Just a script I'm rewriting to look into the data as needed
-"""
-
-import torch
 import numpy as np
-from train import Senate
 
-model = Senate()
-model.load_state_dict(torch.load("models/senate.pt"))
-model.eval()
+d = np.load("data/ml_data.npz")
+y = d["y_obs"]  # (N,)
+p = d["preds"]  # (N, 7)
 
 models = [
     "canesm5",
-    "cola-ccsm4",
-    "cola-cesm1",
-    "gem5p2",
+    "cola-rsmas-ccsm4",
+    "cola-rsmas-cesm1",
+    "gem5p2-nemo",
     "gfdl-spear",
-    "nasa-geos",
+    "nasa-geoss2s",
     "ncep-cfsv2",
 ]
 
+T = 357
+NY = 179
+NX = 360
 
-def get_test_weights(month, lat, lon, ginis):
-    m_val = month % 12
-    coords = [
-        np.sin(2 * np.pi * m_val / 12),
-        np.cos(2 * np.pi * m_val / 12),
-        np.sin(2 * np.pi * lon / 360),
-        np.cos(2 * np.pi * lon / 360),
-        np.sin(np.pi * (lat + 90) / 180),
-        np.cos(np.pi * (lat + 90) / 180),
-    ]
-    x_input = torch.tensor(coords + ginis, dtype=torch.float32).unsqueeze(0)
+# ── per-gridpoint correlations ────────────────────────────────────────────────
+# reshape to (T, NY, NX) for obs and (T, NY, NX, 7) for preds
+y3 = y.reshape(T, NY, NX)
+p4 = p.reshape(T, NY, NX, 7)
 
-    with torch.no_grad():
-        weights = model(x_input).squeeze(0).numpy()
+# demean over time axis
+y_dm = y3 - y3.mean(axis=0, keepdims=True)  # (T, NY, NX)
+p_dm = p4 - p4.mean(axis=0, keepdims=True)  # (T, NY, NX, 7)
 
-    print(f"\n--- Scenario: Month {month}, Lat {lat}, Lon {lon} ---")
-    for name, w, g in zip(models, weights, ginis):
-        print(f"{name:16} | Weight: {w:.4f} | Gini (Uncertainty): {g:.2f}")
+num = (y_dm[:, :, :, None] * p_dm).sum(axis=0)  # (NY, NX, 7)
+denom = np.sqrt((y_dm**2).sum(axis=0)[:, :, None]) * np.sqrt(
+    (p_dm**2).sum(axis=0)
+)  # (NY, NX, 7)
 
+with np.errstate(invalid="ignore"):
+    corr = num / denom  # (NY, NX, 7)  — NaN where variance is 0
 
-# CASE 1: Perfect Agreement (All Ginis = 0)
-# Does the model favor a specific 'reliable' model by default?
-get_test_weights(month=6, lat=0, lon=0, ginis=[0.0] * 7)
+print("PER-GRIDPOINT CORRELATIONS WITH OBS  (mean over globe)")
+print(f"  {'model':<22}  mean_r   std_r   frac>0   frac>0.2")
+for i, name in enumerate(models):
+    c = corr[:, :, i].ravel()
+    valid = c[np.isfinite(c)]
+    print(
+        f"  {name:<22}  {valid.mean():+.4f}  {valid.std():.4f}"
+        f"   {(valid > 0).mean():.3f}    {(valid > 0.2).mean():.3f}"
+    )
 
-# CASE 2: High Uncertainty in Model 0 (CanESM5)
-# Does the weight for CanESM5 drop compared to Case 1?
-ginis_case2 = [0.9, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-get_test_weights(month=6, lat=0, lon=0, ginis=ginis_case2)
+# sanity: correlations should be in [-1, 1]
+assert np.nanmax(np.abs(corr)) <= 1.0 + 1e-5, "correlation out of range!"
+print("\n✓ all correlations in [-1, 1]")
 
-# CASE 3: Only GFDL-Spear is "Certain" (Model 4)
-# Does the weight shift heavily toward GFDL?
-ginis_case3 = [0.8, 0.8, 0.8, 0.8, 0.05, 0.8, 0.8]
-get_test_weights(month=1, lat=45, lon=260, ginis=ginis_case3)
+# ── global (pooled) correlations ──────────────────────────────────────────────
+print("\nGLOBAL POOLED CORRELATION WITH OBS")
+for i, name in enumerate(models):
+    r = np.corrcoef(y, p[:, i])[0, 1]
+    print(f"  {name:<22}  r = {r:+.4f}")
 
-# CASE 4: The "Poles" (High Latitude)
-# Check if the model has a different spatial preference for the same Ginis
-get_test_weights(month=6, lat=80, lon=0, ginis=[0.2] * 7)
+# ── inter-model correlations ──────────────────────────────────────────────────
+print("\nINTER-MODEL CORRELATION MATRIX  (pooled)")
+C = np.corrcoef(p.T)  # (7, 7)
+header = "  " + "".join(f"{m[:6]:>8}" for m in models)
+print(header)
+for i, name in enumerate(models):
+    row = "  " + f"{name[:12]:<12}" + "".join(f"{C[i, j]:>8.3f}" for j in range(7))
+    print(row)
+

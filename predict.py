@@ -13,6 +13,7 @@ model.load_state_dict(torch.load("models/senate.pt"))
 model.eval()
 
 
+# this should be the month you are predicting FOR
 def encode(month, y, x, ginis):
     coords = [
         np.sin(2 * np.pi * month / 12),
@@ -39,7 +40,7 @@ def forecast(month, y, x, nmme_preds, ginis):
 
 dataset = PrecipDataset("data/ml_data.npz")
 train_size = 300 * 179 * 360
-test_size = 60 * 179 * 360
+test_size = 57 * 179 * 360
 test_set = Subset(dataset, range(train_size, train_size + test_size))
 test_loader = DataLoader(test_set, batch_size=2048, shuffle=False)
 
@@ -56,9 +57,9 @@ with torch.no_grad():
         all_obs.append(y_batch.numpy())
         all_baseline.append(p_batch.mean(dim=1).numpy())
 
-all_preds = np.concatenate(all_preds).reshape(60, 179, 360)
-all_obs = np.concatenate(all_obs).reshape(60, 179, 360)
-all_baseline = np.concatenate(all_baseline).reshape(60, 179, 360)
+all_preds = np.concatenate(all_preds).reshape(57, 179, 360)
+all_obs = np.concatenate(all_obs).reshape(57, 179, 360)
+all_baseline = np.concatenate(all_baseline).reshape(57, 179, 360)
 
 Ys = np.arange(-89, 90, 1.0)
 Xs = np.arange(0, 360, 1.0)
