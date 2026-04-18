@@ -2,8 +2,8 @@
 Calculate:
 - MAE
 - RMSE
-- N-ile accuracy (accuracy for N %ile groups) per grid cell
-- ACC per grid cell
+- N-ile accuracy (accuracy for N %ile groups) per grid cell, month
+- ACC per grid cell, month
 """
 
 import xarray as xr
@@ -14,13 +14,23 @@ Y_MIN, Y_MAX, X_MIN, X_MAX = -18, 16, 7, 50
 PRED_PATH = "data/test_predictions.nc"
 ds = xr.open_dataset(PRED_PATH)
 
-forecast_global = ds["forecast"]
-obs_global = ds["obs"]
-baseline_global = ds["baseline"]
 
-forecast_aoi = ds["forecast"].sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
-obs_aoi = ds["obs"].sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
-baseline_aoi = ds["baseline"].sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
+LEAD = 3
+TEST_INIT_START = 300
+N_TEST_RAW = 60
+N_TEST_VALID = N_TEST_RAW - LEAD
+
+ds = ds.isel(time=slice(0, N_TEST_VALID))
+
+VERIF_MONTHS = (np.arange(TEST_INIT_START, TEST_INIT_START + N_TEST_VALID) + LEAD) % 12
+
+forecast_global = ds["forecast"].assign_coords(month=("time", VERIF_MONTHS))
+obs_global = ds["obs"].assign_coords(month=("time", VERIF_MONTHS))
+baseline_global = ds["baseline"].assign_coords(month=("time", VERIF_MONTHS))
+
+forecast_aoi = forecast_global.sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
+obs_aoi = obs_global.sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
+baseline_aoi = baseline_global.sel(X=slice(X_MIN, X_MAX), Y=slice(Y_MIN, Y_MAX))
 
 N = 3
 
@@ -29,10 +39,22 @@ def nile_accuracy(forecast, obs, n):
     quantiles = np.linspace(0, 1, n + 1)
     o = obs.values
     f = forecast.values
-    bins = np.quantile(o, quantiles, axis=0)
-    interior = bins[1:-1]
-    o_bin = (o[np.newaxis] > interior[:, np.newaxis]).sum(axis=0)
-    f_bin = (f[np.newaxis] > interior[:, np.newaxis]).sum(axis=0)
+    months = obs.month.values
+
+    o_bin = np.empty_like(o, dtype=int)
+    f_bin = np.empty_like(f, dtype=int)
+
+    for m in range(12):
+        idx = np.where(months == m)[0]
+        if len(idx) == 0:
+            continue
+        o_m = o[idx]
+        f_m = f[idx]
+        bins = np.quantile(o_m, quantiles, axis=0)
+        interior = bins[1:-1]
+        o_bin[idx] = (o_m[np.newaxis] > interior[:, np.newaxis]).sum(axis=0)
+        f_bin[idx] = (f_m[np.newaxis] > interior[:, np.newaxis]).sum(axis=0)
+
     acc = (o_bin == f_bin).mean(axis=0)
     return xr.DataArray(acc, dims=["Y", "X"], coords={"Y": obs.Y, "X": obs.X})
 
@@ -41,8 +63,12 @@ def evaluate(pred, obs, label):
     mae = np.abs(pred - obs).mean("time")
     rmse = np.sqrt(((pred - obs) ** 2).mean("time"))
     nile_acc = nile_accuracy(pred, obs, N)
-    obs_anom = obs - obs.mean("time")
-    pred_anom = pred - pred.mean("time")
+
+    obs_clim = obs.groupby("month").mean("time")
+    pred_clim = pred.groupby("month").mean("time")
+    obs_anom = obs.groupby("month") - obs_clim
+    pred_anom = pred.groupby("month") - pred_clim
+
     acc = (obs_anom * pred_anom).mean("time") / (
         obs_anom.std("time") * pred_anom.std("time")
     )
