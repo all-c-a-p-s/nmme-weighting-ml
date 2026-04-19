@@ -34,11 +34,48 @@ class Senate(nn.Module):
             nn.Linear(32, 16),
             nn.ReLU(),
             nn.Linear(16, 7),
-            nn.Sigmoid(),
         )
 
     def forward(self, x):
         return self.net(x)
+
+
+N_QUANTILES = 3
+
+
+def compute_metrics(pred, obs, months):
+    mae = np.mean(np.abs(pred - obs))
+    rmse = np.mean(np.sqrt(np.mean((pred - obs) ** 2, axis=0)))
+
+    unique_months = np.unique(months)
+    obs_clim = np.zeros_like(obs)
+    pred_clim = np.zeros_like(pred)
+    for m in unique_months:
+        mask = months == m
+        obs_clim[mask] = obs[mask].mean(axis=0, keepdims=True)
+        pred_clim[mask] = pred[mask].mean(axis=0, keepdims=True)
+
+    obs_anom = obs - obs_clim
+    pred_anom = pred - pred_clim
+    num = np.mean(obs_anom * pred_anom, axis=0)
+    den = obs_anom.std(axis=0) * pred_anom.std(axis=0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        acc = np.nanmean(num / den)
+
+    quantiles = np.linspace(0, 1, N_QUANTILES + 1)
+    correct = np.zeros(obs.shape, dtype=bool)
+    for m in unique_months:
+        mask = months == m
+        o_m = obs[mask]
+        f_m = pred[mask]
+        bins = np.quantile(o_m, quantiles, axis=0)
+        interior = bins[1:-1]
+        o_bin = (o_m[np.newaxis] > interior[:, np.newaxis]).sum(axis=0)
+        f_bin = (f_m[np.newaxis] > interior[:, np.newaxis]).sum(axis=0)
+        correct[mask] = o_bin == f_bin
+    nile_acc = correct.mean()
+
+    return mae, rmse, acc, nile_acc
 
 
 def loaders():
@@ -56,7 +93,7 @@ def loaders():
     train_loader = DataLoader(train_set, batch_size=2048, shuffle=True)
     test_loader = DataLoader(test_set, batch_size=2048, shuffle=False)
 
-    return train_loader, test_loader
+    return train_loader, test_loader, train_timesteps, test_timesteps
 
 
 def train():
@@ -68,7 +105,9 @@ def train():
     print(f"\nstarting training for {EPOCHS} epochs...")
     best_loss = np.inf
 
-    train_loader, test_loader = loaders()
+    train_loader, test_loader, train_timesteps, test_timesteps = loaders()
+    grid_shape = (test_timesteps, 179, 360)
+    test_months = np.arange(train_timesteps, train_timesteps + test_timesteps) % 12
 
     for epoch in range(EPOCHS):
         model.train()
@@ -83,25 +122,45 @@ def train():
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
+
+        # --- eval: collect all test predictions, then compute metrics ---
         model.eval()
-        test_loss = 0.0
-        baseline_loss = 0.0
+        all_preds, all_obs, all_baseline = [], [], []
         with torch.no_grad():
             for X_batch, y_batch, p_batch in test_loader:
                 weights = model(X_batch)
                 y_pred = (weights * p_batch).sum(dim=1)
-                test_loss += loss_fn(y_pred, y_batch).item()
                 baseline = p_batch.mean(dim=1)
-                baseline_loss += loss_fn(baseline, y_batch).item()
-        print(
-            f"Epoch {epoch + 1}/{EPOCHS}  train={train_loss / len(train_loader):.4f}  test={test_loss / len(test_loader):.4f}  baseline={baseline_loss / len(test_loader):.4f}"
+                all_preds.append(y_pred.numpy())
+                all_obs.append(y_batch.numpy())
+                all_baseline.append(baseline.numpy())
+
+        pred_grid = np.concatenate(all_preds).reshape(grid_shape)
+        obs_grid = np.concatenate(all_obs).reshape(grid_shape)
+        bl_grid = np.concatenate(all_baseline).reshape(grid_shape)
+
+        fc_mae, fc_rmse, fc_acc, fc_nile = compute_metrics(
+            pred_grid, obs_grid, test_months
         )
+        bl_mae, bl_rmse, bl_acc, bl_nile = compute_metrics(
+            bl_grid, obs_grid, test_months
+        )
+        test_loss = np.mean((pred_grid - obs_grid) ** 2)
+
+        print(
+            f"\nEpoch {epoch + 1}/{EPOCHS}  train_loss={train_loss / len(train_loader):.4f}"
+        )
+        print(f"  {'':12} {'Forecast':>10} {'Baseline':>10}")
+        print(f"  {'MAE':12} {fc_mae:10.4f} {bl_mae:10.4f}")
+        print(f"  {'RMSE':12} {fc_rmse:10.4f} {bl_rmse:10.4f}")
+        print(f"  {'ACC':12} {fc_acc:10.4f} {bl_acc:10.4f}")
+        print(f"  {f'{N_QUANTILES}-ile Acc':12} {fc_nile:10.4f} {bl_nile:10.4f}")
+
         if test_loss < best_loss:
             best_loss = test_loss
             torch.save(model.state_dict(), "models/senate.pt")
-            print("saved best state to models/senate.pt")
+            print("  -> saved best state to models/senate.pt")
 
 
 if __name__ == "__main__":
     train()
-
