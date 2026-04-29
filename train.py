@@ -48,17 +48,17 @@ def compute_metrics(pred, obs, months):
     rmse = np.mean(np.sqrt(np.mean((pred - obs) ** 2, axis=0)))
 
     unique_months = np.unique(months)
+
     obs_clim = np.zeros_like(obs)
-    pred_clim = np.zeros_like(pred)
+
     for m in unique_months:
         mask = months == m
         obs_clim[mask] = obs[mask].mean(axis=0, keepdims=True)
-        pred_clim[mask] = pred[mask].mean(axis=0, keepdims=True)
 
     obs_anom = obs - obs_clim
-    pred_anom = pred - pred_clim
+    pred_anom = pred - obs_clim  # use obs climatology for both
     num = np.mean(obs_anom * pred_anom, axis=0)
-    den = obs_anom.std(axis=0) * pred_anom.std(axis=0)
+    den = np.sqrt(np.mean(obs_anom**2, axis=0)) * np.sqrt(np.mean(pred_anom**2, axis=0))
     with np.errstate(divide="ignore", invalid="ignore"):
         acc = np.nanmean(num / den)
 
@@ -164,3 +164,4 @@ def train():
 
 if __name__ == "__main__":
     train()
+

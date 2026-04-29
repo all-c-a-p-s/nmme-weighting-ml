@@ -65,13 +65,13 @@ def evaluate(pred, obs, label):
     nile_acc = nile_accuracy(pred, obs, N)
 
     obs_clim = obs.groupby("month").mean("time")
-    pred_clim = pred.groupby("month").mean("time")
     obs_anom = obs.groupby("month") - obs_clim
-    pred_anom = pred.groupby("month") - pred_clim
+    pred_anom = pred.groupby("month") - obs_clim
 
     acc = (obs_anom * pred_anom).mean("time") / (
-        obs_anom.std("time") * pred_anom.std("time")
+        np.sqrt((obs_anom**2).mean("time")) * np.sqrt((pred_anom**2).mean("time"))
     )
+
     print(f"\n--- {label} ---")
     print(f"MAE:        {mae.mean().values:.4f}")
     print(f"RMSE:       {rmse.mean().values:.4f}")
@@ -153,3 +153,4 @@ plot_diff_metrics(
 plot_diff_metrics(
     fc_metrics_aoi, bl_metrics_aoi, "Forecast vs Baseline (AOI)", "plots/diff_aoi.png"
 )
+

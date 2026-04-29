@@ -59,9 +59,12 @@ def monthly_metrics(pred, obs, month_val):
     mae = np.abs(p - o).mean("time")
     rmse = np.sqrt(((p - o) ** 2).mean("time"))
 
-    p_anom = p - p.mean("time")
-    o_anom = o - o.mean("time")
-    acc = (p_anom * o_anom).mean("time") / (p_anom.std("time") * o_anom.std("time"))
+    o_clim = o.mean("time")
+    o_anom = o - o_clim
+    p_anom = p - o_clim  # use obs climatology for both
+    acc = (p_anom * o_anom).mean("time") / (
+        np.sqrt((o_anom**2).mean("time")) * np.sqrt((p_anom**2).mean("time"))
+    )
 
     quantiles = np.linspace(0, 1, N_QUANTILES + 1)
     ov = o.values
@@ -128,4 +131,3 @@ for mdl in MODELS:
     print(f"  {mdl} complete")
 
 print("\nAll done.")
-
