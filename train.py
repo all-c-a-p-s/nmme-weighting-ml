@@ -103,7 +103,7 @@ def train():
 
     EPOCHS = 20
     print(f"\nstarting training for {EPOCHS} epochs...")
-    best_loss = np.inf
+    best_acc = -np.inf
 
     train_loader, test_loader, train_timesteps, test_timesteps = loaders()
     grid_shape = (test_timesteps, 179, 360)
@@ -123,7 +123,6 @@ def train():
             optimizer.step()
             train_loss += loss.item()
 
-        # --- eval: collect all test predictions, then compute metrics ---
         model.eval()
         all_preds, all_obs, all_baseline = [], [], []
         with torch.no_grad():
@@ -145,7 +144,6 @@ def train():
         bl_mae, bl_rmse, bl_acc, bl_nile = compute_metrics(
             bl_grid, obs_grid, test_months
         )
-        test_loss = np.mean((pred_grid - obs_grid) ** 2)
 
         print(
             f"\nEpoch {epoch + 1}/{EPOCHS}  train_loss={train_loss / len(train_loader):.4f}"
@@ -156,10 +154,10 @@ def train():
         print(f"  {'ACC':12} {fc_acc:10.4f} {bl_acc:10.4f}")
         print(f"  {f'{N_QUANTILES}-ile Acc':12} {fc_nile:10.4f} {bl_nile:10.4f}")
 
-        if test_loss < best_loss:
-            best_loss = test_loss
+        if fc_acc > best_acc:
+            best_acc = fc_acc
             torch.save(model.state_dict(), "models/senate.pt")
-            print("  -> saved best state to models/senate.pt")
+            print("  -> saved best state to models/senate.pt [used ACC for validation]")
 
 
 if __name__ == "__main__":
