@@ -1,5 +1,3 @@
-import xarray as xr
-
-ds = xr.open_dataset("sample.nc")
-print(ds)
+Y_MIN, Y_MAX, X_MIN, X_MAX = -18, 16, 7, 50
+AOI_ONLY = True
 

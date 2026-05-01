@@ -9,9 +9,9 @@ Calculate:
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
+from util import AOI_ONLY, Y_MIN, Y_MAX, X_MIN, X_MAX
 
-Y_MIN, Y_MAX, X_MIN, X_MAX = -18, 16, 7, 50
-PRED_PATH = "data/test_predictions.nc"
+PRED_PATH = "data/test_predictions_aoi.nc" if AOI_ONLY else "data/test_predictions.nc"
 ds = xr.open_dataset(PRED_PATH)
 
 
@@ -134,22 +134,22 @@ def plot_diff_metrics(fc_metrics, bl_metrics, label, filename):
     print(f"Saved {filename}")
 
 
-fc_metrics_global = evaluate(forecast_global, obs_global, "Forecast (global)")
-bl_metrics_global = evaluate(baseline_global, obs_global, "Baseline (global)")
-plot_metrics(fc_metrics_global, "Forecast (global)", "plots/forecast_global.png")
-plot_metrics(bl_metrics_global, "Baseline (global)", "plots/baseline_global.png")
+if not AOI_ONLY:
+    fc_metrics_global = evaluate(forecast_global, obs_global, "Forecast (global)")
+    bl_metrics_global = evaluate(baseline_global, obs_global, "Baseline (global)")
+    plot_metrics(fc_metrics_global, "Forecast (global)", "plots/forecast_global.png")
+    plot_metrics(bl_metrics_global, "Baseline (global)", "plots/baseline_global.png")
+    plot_diff_metrics(
+        fc_metrics_global,
+        bl_metrics_global,
+        "Forecast vs Baseline (global)",
+        "plots/diff_global.png",
+    )
 
 fc_metrics_aoi = evaluate(forecast_aoi, obs_aoi, "Forecast (AOI)")
 bl_metrics_aoi = evaluate(baseline_aoi, obs_aoi, "Baseline (AOI)")
 plot_metrics(fc_metrics_aoi, "Forecast (AOI)", "plots/forecast_aoi.png")
 plot_metrics(bl_metrics_aoi, "Baseline (AOI)", "plots/baseline_aoi.png")
-
-plot_diff_metrics(
-    fc_metrics_global,
-    bl_metrics_global,
-    "Forecast vs Baseline (global)",
-    "plots/diff_global.png",
-)
 plot_diff_metrics(
     fc_metrics_aoi, bl_metrics_aoi, "Forecast vs Baseline (AOI)", "plots/diff_aoi.png"
 )

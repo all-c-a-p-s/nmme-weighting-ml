@@ -4,6 +4,7 @@ master.nc + era5_ppt.nc -> .npz file for ML
 
 import xarray as xr
 import numpy as np
+from util import AOI_ONLY, Y_MIN, Y_MAX, X_MIN, X_MAX
 
 obs = xr.open_dataset("data/era5_ppt.nc")["tp"]
 master = xr.open_dataset("data/master.nc")
@@ -21,17 +22,36 @@ models = [
 ]
 
 T = 357
-Ys = pred.Y.values[1:-1]  # ignore poles bc gfdl-spear has NaNs there
-Xs = pred.X.values
+all_Ys = pred.Y.values[1:-1]  # ignore poles bc gfdl-spear has NaNs there
+all_Xs = pred.X.values
+
+if AOI_ONLY:
+    y_mask = (all_Ys >= Y_MIN) & (all_Ys <= Y_MAX)
+    x_mask = (all_Xs >= X_MIN) & (all_Xs <= X_MAX)
+    Ys = all_Ys[y_mask]
+    Xs = all_Xs[x_mask]
+    y_slice = slice(
+        np.where(y_mask)[0][0] + 1, np.where(y_mask)[0][-1] + 2
+    )  # +1 offset for pole removal
+    x_slice = slice(np.where(x_mask)[0][0], np.where(x_mask)[0][-1] + 1)
+else:
+    Ys = all_Ys
+    Xs = all_Xs
+    y_slice = slice(1, -1)
+    x_slice = slice(None)
+
 months = (np.arange(T) + 3) % 12
 
-obs_np = obs.values[3:, 1:-1, :]
-pred_np = pred.sel(model=models).values[:-3, 1:-1, :, :]
-gini_np = gini.sel(model=models).values[:-3, 1:-1, :, :]
+obs_np = obs.values[3:, y_slice, x_slice]
+pred_np = pred.sel(model=models).values[:-3, y_slice, x_slice, :]
+gini_np = gini.sel(model=models).values[:-3, y_slice, x_slice, :]
 gini_np = np.nan_to_num(gini_np)
 
+n_y = len(Ys)
+n_x = len(Xs)
+
 t_idx, y_idx, x_idx = np.meshgrid(
-    np.arange(T), np.arange(179), np.arange(360), indexing="ij"
+    np.arange(T), np.arange(n_y), np.arange(n_x), indexing="ij"
 )
 t_idx = t_idx.ravel()
 y_idx = y_idx.ravel()
@@ -59,6 +79,9 @@ ginis = gini_np.reshape(-1, 7).astype(np.float32)
 
 X_input = np.hstack([X_input, ginis])
 
-np.savez("data/ml_data.npz", X_input=X_input, y_obs=y_obs, preds=preds)
-print(f"saved {len(y_obs)} samples")
+out_path = "data/ml_data_aoi.npz" if AOI_ONLY else "data/ml_data.npz"
+np.savez(
+    out_path, X_input=X_input, y_obs=y_obs, preds=preds, n_y=n_y, n_x=n_x, Ys=Ys, Xs=Xs
+)
+print(f"saved {len(y_obs)} samples to {out_path}")
 
