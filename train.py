@@ -119,7 +119,16 @@ def eval_loss(mae, acc, nile_acc, alpha=0.4, beta=0.4, gamma=0.2):
 
 def train():
     model = Senate()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=3e-3,
+        weight_decay=1e-4,
+    )
+
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=5
+    )
+
     loss_fn = nn.MSELoss()
 
     EPOCHS = 100 if AOI_ONLY else 20
@@ -184,6 +193,7 @@ def train():
         nile_n = fc_nile * bl_mae / bl_nile
 
         eval_score = eval_loss(fc_mae, acc_n, nile_n)
+        scheduler.step(eval_score)
 
         print(f"    [hybrid eval score: {eval_score:10.4f}]")
 
@@ -197,4 +207,3 @@ def train():
 
 if __name__ == "__main__":
     train()
-

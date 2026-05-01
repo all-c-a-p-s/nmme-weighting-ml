@@ -59,6 +59,10 @@ def nile_accuracy(forecast, obs, n):
     return xr.DataArray(acc, dims=["Y", "X"], coords={"Y": obs.Y, "X": obs.X})
 
 
+def eval_loss(mae, acc, nile_acc, alpha=0.4, beta=0.4, gamma=0.2):
+    return alpha * mae - beta * acc - gamma * nile_acc
+
+
 def evaluate(pred, obs, label):
     mae = np.abs(pred - obs).mean("time")
     rmse = np.sqrt(((pred - obs) ** 2).mean("time"))
@@ -73,10 +77,11 @@ def evaluate(pred, obs, label):
     )
 
     print(f"\n--- {label} ---")
-    print(f"MAE:        {mae.mean().values:.4f}")
-    print(f"RMSE:       {rmse.mean().values:.4f}")
-    print(f"{N}-ile acc: {nile_acc.mean().values:.4f}")
-    print(f"ACC:        {acc.mean().values:.4f}")
+    print(f"MAE:        {mae.values.mean():.4f}")
+    print(f"RMSE:       {rmse.values.mean():.4f}")
+    print(f"{N}-ile acc: {nile_acc.values.mean():.4f}")
+    print(f"ACC:        {acc.values.mean():.4f}")
+
     return {"MAE": mae, "RMSE": rmse, f"{N}-ile Acc": nile_acc, "ACC": acc}
 
 
@@ -137,6 +142,23 @@ def plot_diff_metrics(fc_metrics, bl_metrics, label, filename):
 if not AOI_ONLY:
     fc_metrics_global = evaluate(forecast_global, obs_global, "Forecast (global)")
     bl_metrics_global = evaluate(baseline_global, obs_global, "Baseline (global)")
+
+    acc_n = (
+        fc_metrics_global["ACC"].values.mean()
+        * bl_metrics_global["MAE"].values.mean()
+        / bl_metrics_global["ACC"].values.mean()
+    )
+
+    nile_n = (
+        fc_metrics_global[f"{N}-ile Acc"].values.mean()
+        * bl_metrics_global["MAE"].values.mean()
+        / bl_metrics_global[f"{N}-ile Acc"].values.mean()
+    )
+
+    eval_score = -eval_loss(fc_metrics_global["MAE"].values.mean(), acc_n, nile_n)
+
+    print(f"Global hybrid score: {eval_score:10.4f}")
+
     plot_metrics(fc_metrics_global, "Forecast (global)", "plots/forecast_global.png")
     plot_metrics(bl_metrics_global, "Baseline (global)", "plots/baseline_global.png")
     plot_diff_metrics(
@@ -148,6 +170,23 @@ if not AOI_ONLY:
 
 fc_metrics_aoi = evaluate(forecast_aoi, obs_aoi, "Forecast (AOI)")
 bl_metrics_aoi = evaluate(baseline_aoi, obs_aoi, "Baseline (AOI)")
+
+acc_n = (
+    fc_metrics_aoi["ACC"].values.mean()
+    * bl_metrics_aoi["MAE"].values.mean()
+    / bl_metrics_aoi["ACC"].values.mean()
+)
+
+nile_n = (
+    fc_metrics_aoi[f"{N}-ile Acc"].values.mean()
+    * bl_metrics_aoi["MAE"].values.mean()
+    / bl_metrics_aoi[f"{N}-ile Acc"].values.mean()
+)
+
+eval_score = -eval_loss(fc_metrics_aoi["MAE"].values.mean(), acc_n, nile_n)
+
+print(f"AOI hybrid score: {eval_score:10.4f}")
+
 plot_metrics(fc_metrics_aoi, "Forecast (AOI)", "plots/forecast_aoi.png")
 plot_metrics(bl_metrics_aoi, "Baseline (AOI)", "plots/baseline_aoi.png")
 plot_diff_metrics(
