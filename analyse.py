@@ -192,4 +192,3 @@ plot_metrics(bl_metrics_aoi, "Baseline (AOI)", "plots/baseline_aoi.png")
 plot_diff_metrics(
     fc_metrics_aoi, bl_metrics_aoi, "Forecast vs Baseline (AOI)", "plots/diff_aoi.png"
 )
-

@@ -124,7 +124,7 @@ def train():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
 
-    EPOCHS = 100 if AOI_ONLY else 20
+    EPOCHS = 100
     print(f"\nstarting training for {EPOCHS} epochs...")
     best_eval = np.inf
 
@@ -199,4 +199,3 @@ def train():
 
 if __name__ == "__main__":
     train()
-
