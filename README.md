@@ -20,10 +20,10 @@ ACC:        0.0445
 ## Results in Central Africa AOI
 ```
 --- Forecast (AOI) ---
-MAE:        1.0484
-RMSE:       1.5547
-3-ile acc: 0.3382
-ACC:        0.0739
+MAE:        0.9797
+RMSE:       1.4941
+3-ile acc: 0.4001
+ACC:        0.0897
 
 --- Baseline (AOI) ---
 MAE:        1.2330
