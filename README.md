@@ -5,10 +5,10 @@ Still a lot of improvement to be found + more ideas to test.
 ## Global Results
 ```
 --- Forecast (global) ---
-MAE:        0.8668
-RMSE:       1.1855
-3-ile acc: 0.3355
-ACC:        0.0496
+MAE:        0.8548
+RMSE:       1.1769
+3-ile acc: 0.3390
+ACC:        0.0518
 
 --- Baseline (global) ---
 MAE:        0.9378

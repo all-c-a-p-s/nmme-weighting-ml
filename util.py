@@ -1,2 +1,2 @@
 Y_MIN, Y_MAX, X_MIN, X_MAX = -18, 16, 7, 50
-AOI_ONLY = False
+AOI_ONLY = True
