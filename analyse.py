@@ -12,9 +12,10 @@ import matplotlib.pyplot as plt
 from util import AOI_ONLY, Y_MIN, Y_MAX, X_MIN, X_MAX
 
 
-PRED_PATH = (
-    "data/emos_2016-01_to_2020-09.nc" if AOI_ONLY else "data/test_predictions.nc"
-)
+PRED_PATH = "data/test_predictions_aoi.nc" if AOI_ONLY else "data/test_predictions.nc"
+
+PRED_PATH = "data/emos_2016-01_to_2020-09.nc"
+
 ds = xr.open_dataset(PRED_PATH)
 
 LEAD = 3
@@ -22,15 +23,23 @@ TEST_INIT_START = 300
 N_TEST_RAW = 60
 N_TEST_VALID = N_TEST_RAW - LEAD
 
+IS_RESIDUAL = False
+VERIFICATION_INDEXING = True
+
 ds = ds.isel(time=slice(0, N_TEST_VALID))
 
 VERIF_MONTHS = (np.arange(TEST_INIT_START, TEST_INIT_START + N_TEST_VALID) + LEAD) % 12
+
+if VERIFICATION_INDEXING:
+    VERIF_MONTHS = ds.time.dt.month.values - 1
 
 forecast_global = ds["forecast"].assign_coords(month=("time", VERIF_MONTHS))
 obs_global = ds["obs"].assign_coords(month=("time", VERIF_MONTHS))
 baseline_global = ds["baseline"].assign_coords(month=("time", VERIF_MONTHS))
 
-# Ignore anywhere the forecast prediction is NaN
+if IS_RESIDUAL:
+    forecast_global = forecast_global - baseline_global
+
 valid_global = np.isfinite(forecast_global)
 forecast_global = forecast_global.where(valid_global)
 obs_global = obs_global.where(valid_global)

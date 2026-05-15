@@ -30,7 +30,7 @@ for path in sorted(
 
     da = ds["pred_mean"].sel(L=3.0)
 
-    time = ic + pd.DateOffset(months=3)
+    time = ic
 
     da = da.expand_dims(time=[time])
     da = da.rename("forecast")
